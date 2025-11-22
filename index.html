@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Simulador de Procesador de Expedientes - Sistema de optimización de procesos burocráticos">
+    <title>Simulador de Procesador de Expedientes</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const FileTextIcon = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+        );
+
+        const CheckCircleIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+
+        const ClockIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        const UserIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        );
+
+        const DollarSignIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+        );
+
+        const TrendingUpIcon = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+        );
+
+        const AlertCircleIcon = ({ size = 48 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        );
+
+        const SimuladorExpedientes = () => {
+            const [expedientes, setExpedientes] = useState([]);
+            const [simulacionActiva, setSimulacionActiva] = useState(false);
+            const [estadisticas, setEstadisticas] = useState({
+                total: 0,
+                completados: 0,
+                enProceso: 0,
+                pendientes: 0,
+                montoTotal: 0,
+                tiempoPromedio: 0
+            });
+
+            const [comparativa] = useState({
+                antes: {
+                    tiempoPorExpediente: 7,
+                    erroresDocumentales: 18,
+                    documentosPerdidos: 8,
+                    costoOperativo: 1850,
+                    expedientesMes: 45,
+                    horasPersonal: 6,
+                    reprocesos: 12
+                },
+                despues: {
+                    tiempoPorExpediente: 2,
+                    erroresDocumentales: 4,
+                    documentosPerdidos: 1,
+                    costoOperativo: 650,
+                    expedientesMes: 45,
+                    horasPersonal: 2,
+                    reprocesos: 2
+                }
+            });
+
+            const talleres = [
+                'Taller Mecánico Rodriguez',
+                'Automotriz Del Valle',
+                'Taller Express Central',
+                'Refacciones y Servicio Norte',
+                'Taller Especializado Sur'
+            ];
+
+            const tiposDocumento = ['Factura', 'Contrato', 'Anexo', 'Orden de Compra'];
+
+            const generarFolio = () => {
+                const fecha = new Date();
+                const año = fecha.getFullYear();
+                const numero = Math.floor(Math.random() * 9000) + 1000;
+                return `EXP-${año}-${numero}`;
+            };
+
+            const generarMonto = () => {
+                return Math.floor(Math.random() * 45000) + 5000;
+            };
+
+            const generarExpediente = () => {
+                const etapas = [
+                    { nombre: 'Recepción', responsable: 'Compras', completada: false, orden: 1 },
+                    { nombre: 'Revisión Documentos', responsable: 'Compras', completada: false, orden: 2 },
+                    { nombre: 'Firma Compras', responsable: 'Compras', completada: false, orden: 3 },
+                    { nombre: 'Validación Financiera', responsable: 'Finanzas', completada: false, orden: 4 },
+                    { nombre: 'Firma Finanzas', responsable: 'Finanzas', completada: false, orden: 5 },
+                    { nombre: 'Aprobación Gerencia', responsable: 'Gerencia', completada: false, orden: 6 },
+                    { nombre: 'Sello Final', responsable: 'Contabilidad', completada: false, orden: 7 },
+                    { nombre: 'Archivo', responsable: 'Contabilidad', completada: false, orden: 8 }
+                ];
+
+                return {
+                    id: Date.now() + Math.random(),
+                    folio: generarFolio(),
+                    proveedor: talleres[Math.floor(Math.random() * talleres.length)],
+                    monto: generarMonto(),
+                    tipo: tiposDocumento[Math.floor(Math.random() * tiposDocumento.length)],
+                    fechaIngreso: new Date(),
+                    etapas: etapas,
+                    etapaActual: 0,
+                    estado: 'Pendiente',
+                    tiempoProceso: 0,
+                    documentos: {
+                        factura: Math.random() > 0.2,
+                        contrato: Math.random() > 0.3,
+                        anexos: Math.floor(Math.random() * 3) + 1
+                    }
+                };
+            };
+
+            const iniciarSimulacion = async () => {
+                setSimulacionActiva(true);
+                const nuevosExpedientes = Array.from({ length: 5 }, generarExpediente);
+                setExpedientes(nuevosExpedientes);
+
+                for (let i = 0; i < 8; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    setExpedientes(prev => {
+                        return prev.map(exp => {
+                            const etapasCompletadas = exp.etapas.filter(e => e.completada).length;
+                            if (etapasCompletadas < exp.etapas.length) {
+                                const nuevasEtapas = [...exp.etapas];
+                                nuevasEtapas[etapasCompletadas].completada = true;
+                                
+                                return {
+                                    ...exp,
+                                    etapas: nuevasEtapas,
+                                    etapaActual: etapasCompletadas + 1,
+                                    estado: etapasCompletadas + 1 === exp.etapas.length ? 'Completado' : 'En Proceso',
+                                    tiempoProceso: exp.tiempoProceso + (Math.random() * 3 + 1)
+                                };
+                            }
+                            return exp;
+                        });
+                    });
+                }
+
+                setSimulacionActiva(false);
+            };
+
+            useEffect(() => {
+                if (expedientes.length > 0) {
+                    const completados = expedientes.filter(e => e.estado === 'Completado').length;
+                    const enProceso = expedientes.filter(e => e.estado === 'En Proceso').length;
+                    const pendientes = expedientes.filter(e => e.estado === 'Pendiente').length;
+                    const montoTotal = expedientes.reduce((sum, e) => sum + e.monto, 0);
+                    const tiempoPromedio = expedientes.reduce((sum, e) => sum + e.tiempoProceso, 0) / expedientes.length / 1000;
+
+                    setEstadisticas({
+                        total: expedientes.length,
+                        completados,
+                        enProceso,
+                        pendientes,
+                        montoTotal,
+                        tiempoPromedio
+                    });
+                }
+            }, [expedientes]);
+
+            const agregarExpediente = () => {
+                const nuevo = generarExpediente();
+                setExpedientes([...expedientes, nuevo]);
+            };
+
+            const getEstadoColor = (estado) => {
+                switch (estado) {
+                    case 'Completado': return 'bg-green-100 text-green-800';
+                    case 'En Proceso': return 'bg-blue-100 text-blue-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            const formatearMonto = (monto) => {
+                return new Intl.NumberFormat('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN'
+                }).format(monto);
+            };
+
+            const calcularAhorros = () => {
+                const { antes, despues } = comparativa;
+                const expedientesMes = antes.expedientesMes;
+                
+                const diasAhorrados = (antes.tiempoPorExpediente - despues.tiempoPorExpediente) * expedientesMes;
+                const horasPersonalAhorradas = (antes.horasPersonal - despues.horasPersonal) * expedientesMes;
+                const ahorroDirectoCostos = (antes.costoOperativo - despues.costoOperativo) * expedientesMes;
+                
+                const expedientesReprocesoBefore = expedientesMes * (antes.reprocesos / 100);
+                const expedientesReprocesoAfter = expedientesMes * (despues.reprocesos / 100);
+                const ahorroReprocesos = (expedientesReprocesoBefore - expedientesReprocesoAfter) * antes.costoOperativo;
+                
+                const ahorroTotalMensual = ahorroDirectoCostos + ahorroReprocesos;
+                
+                return {
+                    diasAhorrados: diasAhorrados.toFixed(0),
+                    horasPersonalAhorradas: horasPersonalAhorradas.toFixed(0),
+                    reduccionErrores: (antes.erroresDocumentales - despues.erroresDocumentales).toFixed(0),
+                    reduccionPerdidas: (antes.documentosPerdidos - despues.documentosPerdidos).toFixed(0),
+                    ahorroDirecto: ahorroDirectoCostos,
+                    ahorroReprocesos: ahorroReprocesos,
+                    ahorroTotalMensual: ahorroTotalMensual,
+                    ahorroAnual: ahorroTotalMensual * 12,
+                    mejoraVelocidad: (((antes.tiempoPorExpediente - despues.tiempoPorExpediente) / antes.tiempoPorExpediente) * 100).toFixed(0),
+                    roi: (((ahorroTotalMensual * 12) / 35000) * 100).toFixed(0),
+                    mesesRecuperacion: (35000 / ahorroTotalMensual).toFixed(1)
+                };
+            };
+
+            const ahorros = calcularAhorros();
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* ANÁLISIS COMPARATIVO */}
+                        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                <TrendingUpIcon />
+                                Análisis Comparativo: Antes vs Después
+                            </h2>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                <div className="bg-red-50 rounded-lg p-6 border-2 border-red-200">
+                                    <h3 className="text-xl font-bold text-red-800 mb-4">❌ Proceso Manual (ANTES)</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center pb-2 border-b border-red-200">
+                                            <span className="text-gray-700">Tiempo/expediente:</span>
+                                            <span className="font-bold text-red-700">{comparativa.antes.tiempoPorExpediente} días</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-red-200">
+                                            <span className="text-gray-700">Horas-personal:</span>
+                                            <span className="font-bold text-red-700">{comparativa.antes.horasPersonal} hrs</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-red-200">
+                                            <span className="text-gray-700">Errores:</span>
+                                            <span className="font-bold text-red-700">{comparativa.antes.erroresDocumentales}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-red-200">
+                                            <span className="text-gray-700">Reprocesos:</span>
+                                            <span className="font-bold text-red-700">{comparativa.antes.reprocesos}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-700 font-semibold">Costo mensual:</span>
+                                            <span className="font-bold text-red-800 text-lg">{formatearMonto(comparativa.antes.costoOperativo * 45)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-green-50 rounded-lg p-6 border-2 border-green-200">
+                                    <h3 className="text-xl font-bold text-green-800 mb-4">✅ Proceso Digital (DESPUÉS)</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center pb-2 border-b border-green-200">
+                                            <span className="text-gray-700">Tiempo/expediente:</span>
+                                            <span className="font-bold text-green-700">{comparativa.despues.tiempoPorExpediente} días</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-green-200">
+                                            <span className="text-gray-700">Horas-personal:</span>
+                                            <span className="font-bold text-green-700">{comparativa.despues.horasPersonal} hrs</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-green-200">
+                                            <span className="text-gray-700">Errores:</span>
+                                            <span className="font-bold text-green-700">{comparativa.despues.erroresDocumentales}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-2 border-b border-green-200">
+                                            <span className="text-gray-700">Reprocesos:</span>
+                                            <span className="font-bold text-green-700">{comparativa.despues.reprocesos}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-700 font-semibold">Costo mensual:</span>
+                                            <span className="font-bold text-green-800 text-lg">{formatearMonto(comparativa.despues.costoOperativo * 45)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 mb-6">
+                                <h3 className="text-2xl font-bold text-white mb-4 text-center">💰 Ahorros Reales Mensuales</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center backdrop-blur">
+                                        <p className="text-white text-sm opacity-90">Ahorro Directo</p>
+                                        <p className="text-2xl font-bold text-white">{formatearMonto(ahorros.ahorroDirecto)}</p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center backdrop-blur">
+                                        <p className="text-white text-sm opacity-90">Ahorro Reprocesos</p>
+                                        <p className="text-2xl font-bold text-white">{formatearMonto(ahorros.ahorroReprocesos)}</p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center backdrop-blur">
+                                        <p className="text-white text-sm opacity-90">Total Mensual</p>
+                                        <p className="text-2xl font-bold text-white">{formatearMonto(ahorros.ahorroTotalMensual)}</p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center backdrop-blur">
+                                        <p className="text-white text-sm opacity-90">Anual</p>
+                                        <p className="text-2xl font-bold text-white">{formatearMonto(ahorros.ahorroAnual)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-50 rounded-lg p-5 border-2 border-indigo-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-600 mb-1">💰 AHORRO TOTAL MENSUAL</p>
+                                        <p className="text-4xl font-bold text-indigo-700">{formatearMonto(ahorros.ahorroTotalMensual)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-600 mb-1">📅 ROI</p>
+                                        <p className="text-3xl font-bold text-indigo-700">{ahorros.mesesRecuperacion}</p>
+                                        <p className="text-xs text-gray-600">meses</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SIMULADOR */}
+                        <div className="bg-white rounded-xl shadow-lg p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                        <FileTextIcon size={36} />
+                                        Simulador de Expedientes
+                                    </h1>
+                                    <p className="text-gray-600 mt-2">Sistema de optimización de procesos</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+                                    <p className="text-sm opacity-90">Total</p>
+                                    <p className="text-3xl font-bold">{estadisticas.total}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white">
+                                    <p className="text-sm opacity-90">Completados</p>
+                                    <p className="text-3xl font-bold">{estadisticas.completados}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-4 text-white">
+                                    <p className="text-sm opacity-90">En Proceso</p>
+                                    <p className="text-3xl font-bold">{estadisticas.enProceso}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+                                    <p className="text-sm opacity-90">Monto Total</p>
+                                    <p className="text-xl font-bold">{formatearMonto(estadisticas.montoTotal)}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-4 text-white">
+                                    <p className="text-sm opacity-90">Tiempo Prom</p>
+                                    <p className="text-2xl font-bold">{estadisticas.tiempoPromedio.toFixed(1)}s</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mb-6">
+                                <button
+                                    onClick={iniciarSimulacion}
+                                    disabled={simulacionActiva}
+                                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                                >
+                                    {simulacionActiva ? 'Procesando...' : 'Iniciar Simulación'}
+                                </button>
+                                <button
+                                    onClick={agregarExpediente}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                                >
+                                    Agregar Expediente
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {expedientes.map((exp) => (
+                                    <div key={exp.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-xl font-bold text-gray-800">{exp.folio}</h3>
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getEstadoColor(exp.estado)}`}>
+                                                        {exp.estado}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    <p className="text-gray-600"><strong>Proveedor:</strong> {exp.proveedor}</p>
+                                                    <p className="text-gray-600"><strong>Monto:</strong> {formatearMonto(exp.monto)}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-600">Progreso</p>
+                                                <p className="text-2xl font-bold text-indigo-600">
+                                                    {exp.etapas.filter(e => e.completada).length}/{exp.etapas.length}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-3">
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                                                    style={{ width: `${(exp.etapas.filter(e => e.completada).length / exp.etapas.length) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {exp.etapas.map((etapa, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`p-3 rounded-lg text-sm transition-all ${
+                                                        etapa.completada
+                                                            ? 'bg-green-100 border-2 border-green-500'
+                                                            : idx === exp.etapaActual
+                                                            ? 'bg-blue-100 border-2 border-blue-500 animate-pulse'
+                                                            : 'bg-gray-50 border-2 border-gray-200'
+                                                    }`}
+                                                >
+                                                    <p className="font-semibold text-xs mb-1">{etapa.nombre}</p>
+                                                    <p className="text-xs text-gray-600">{etapa.responsable}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {expedientes.length === 0 && (
+                                <div className="text-center py-12 text-gray-500">
+                                    <AlertCircleIcon />
+                                    <p className="text-lg mt-4">No hay expedientes en el sistema</p>
+                                    <p className="text-sm">Inicia una simulación o agrega un expediente</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<SimuladorExpedientes />, document.getElementById('root'));
+    </script>
+</body>
+</html>
